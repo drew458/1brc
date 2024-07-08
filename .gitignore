@@ -1,3 +1,7 @@
 data/measurements.txt
 src/main/rust/target/
 src/main/rust/cargo.lock
+src/main/java/dev/morling/onebrc/CalculateAverage_baseline.class
+src/main/java/dev/morling/onebrc/CalculateAverage_baseline$Measurement.class
+src/main/java/dev/morling/onebrc/CalculateAverage_baseline$ResultRow.class
+src/main/java/dev/morling/onebrc/CalculateAverage_baseline$MeasurementAggregator.class

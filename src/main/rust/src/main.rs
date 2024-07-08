@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read, path::Path, str::FromStr};
+use std::{collections::HashMap, fs::File, io::Read, path::Path};
 
 const FILE_PATH: &str = "/Users/andrea/Documents/Code/Learning/1brc/data/measurements.txt";
 
@@ -67,15 +67,19 @@ fn main() {
 
     let mut output_string: String = '{'.into();
 
-    for i in ordered_list {
-        let station_name = i.0;
-        let min = i.1;
-        let max = i.2;
-        let avg = i.3;
-        output_string.push_str(format!("{station_name}={min}/{avg}/{max}, ").as_str())
+    for (idx, elem) in ordered_list.iter().enumerate() {
+        let station_name = elem.0;
+        let min = elem.1;
+        let max = elem.2;
+        let avg = elem.3;
+
+        if idx != ordered_list.len() - 1 {
+            output_string.push_str(format!("{station_name}={min}/{avg}/{max}, ").as_str())
+        } else {
+            output_string.push_str(format!("{station_name}={min}/{avg}/{max}").as_str())
+        }
     }
 
-    output_string.remove(output_string.len() - 1);
     output_string.push('}');
 
     println!("{}", output_string);
