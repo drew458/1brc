@@ -23,13 +23,12 @@ impl <'a> Measurement<'a> {
 
 fn main() {
     let mut file =
-        File::open(Path::new(FILE_PATH)).expect("Unable to open file /data/measurements.txt");
+        File::open(Path::new(FILE_PATH)).expect("Unable to open file measurements.txt");
 
-    let mut buf = Vec::new();
-    let _ = file.read_to_end(&mut buf);
-    let file_str = String::from_utf8(buf).unwrap();
+    let mut buf = String::new();
+    let _ = file.read_to_string(&mut buf);
 
-    let lines: Vec<&str> = file_str.split('\n').collect();
+    let lines: Vec<&str> = buf.split('\n').collect();
 
     let mut buckets: HashMap<&str, Vec<f64>> = HashMap::new();
 
@@ -58,12 +57,12 @@ fn main() {
     for (key, val) in buckets {
         let min = calculate_min(&val);
         let max = calculate_max(&val);
-        let mean = calculate_mean(&val);
+        let avg = calculate_avg(&val);
 
-        ordered_list.push((key, min, max, mean));
+        ordered_list.push((key, min, max, avg));
     }
 
-    ordered_list.sort_by(|a, b| a.0.cmp(b.0));
+    ordered_list.sort_unstable_by(|a, b| a.0.cmp(b.0));
 
     let mut output_string: String = '{'.into();
 
@@ -74,7 +73,7 @@ fn main() {
         let avg = elem.3;
 
         if idx != ordered_list.len() - 1 {
-            output_string.push_str(format!("{station_name}={min}/{avg}/{max}, ").as_str())
+            output_string.push_str(format!("{station_name}={min}/{avg}/{max}, ").as_str())  // there are other elements in the list
         } else {
             output_string.push_str(format!("{station_name}={min}/{avg}/{max}").as_str())
         }
@@ -109,7 +108,7 @@ fn calculate_max(lst: &Vec<f64>) -> f64 {
     *max
 }
 
-fn calculate_mean(lst: &Vec<f64>) -> f64 {
+fn calculate_avg(lst: &Vec<f64>) -> f64 {
     let mut acc: f64 = 0.0;
 
     for i in lst {
