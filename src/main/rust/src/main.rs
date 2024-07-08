@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io::Read, path::Path, str::FromStr};
 
-const FILE_PATH: &str = "../../../../data/measurement.txt";
+const FILE_PATH: &str = "/Users/andrea/Documents/Code/Learning/1brc/data/measurements.txt";
 
 /*struct Measurement<'a> {
     station: &'a str,
@@ -34,14 +34,19 @@ fn main() {
     let mut buckets: HashMap<&str, Vec<f64>> = HashMap::new();
 
     for line in lines {
-        let (weather_station, temp_str) = line.split_once(';').unwrap();
-        let temp = temp_str.parse().expect("Cannot parse temperature");
+        match line.split_once(';') {
+            Some((weather_station, temp_str)) => {
 
-        if buckets.contains_key(weather_station) {
-            buckets.get_mut(weather_station).unwrap().push(temp);
-        } else {
-            let temp_vec = vec![temp];
-            buckets.insert(weather_station, temp_vec);
+                let temp = temp_str.parse().expect("Cannot parse temperature");
+
+                if buckets.contains_key(weather_station) {
+                    buckets.get_mut(weather_station).unwrap().push(temp);
+                } else {
+                    let temp_vec = vec![temp];
+                    buckets.insert(weather_station, temp_vec);
+                }
+            },
+            None => continue
         }
     }
 
@@ -60,7 +65,7 @@ fn main() {
 
     ordered_list.sort_by(|a, b| a.0.cmp(b.0));
 
-    let mut output_string = String::from_str("{").unwrap();
+    let mut output_string: String = '{'.into();
 
     for i in ordered_list {
         let station_name = i.0;
