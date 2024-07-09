@@ -16,4 +16,8 @@
 #
 
 JAVA_OPTS=""
-java $JAVA_OPTS --class-path target/average-1.0.0-SNAPSHOT.jar dev.morling.onebrc.CalculateAverage_baseline
+# java $JAVA_OPTS --class-path target/average-1.0.0-SNAPSHOT.jar src/main/java/dev/morling/onebrc/CalculateAverage_baseline.java;
+
+cd src/main/java
+javac dev/morling/onebrc/CalculateAverage_baseline.java
+java $JAVA_OPTS="" dev.morling.onebrc.CalculateAverage_baseline
