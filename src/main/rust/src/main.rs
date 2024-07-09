@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read, path::Path};
+use std::{collections::HashMap, fs::File, io::Read, path::Path, sync::{Arc, Mutex, RwLock}, thread::{self, JoinHandle}};
 
 const FILE_PATH: &str = "/Users/andrea/Documents/Code/Learning/1brc/data/measurements.txt";
 
@@ -30,37 +30,41 @@ fn main() {
 
     let lines: Vec<&str> = buf.split('\n').collect();
 
-    let mut buckets: HashMap<&str, Vec<f64>> = HashMap::new();
+    let num_cpu = thread::available_parallelism().unwrap().get();
 
-    for line in lines {
-        match line.split_once(';') {
-            Some((weather_station, temp_str)) => {
+    let lines_chunks = lines.chunks(num_cpu);
+    let mut running_threads = Vec::new();
 
-                let temp = temp_str.parse().expect("Cannot parse temperature");
+    // launch processing threads
+    /*for lines_chunk in lines_chucks {
+        let t = thread::spawn(|| calculate_piece(lines_chunk));
+        running_threads.push(t);
+    }*/
 
-                if buckets.contains_key(weather_station) {
-                    buckets.get_mut(weather_station).unwrap().push(temp);
-                } else {
-                    let temp_vec = vec![temp];
-                    buckets.insert(weather_station, temp_vec);
-                }
-            },
-            None => continue
-        }
+    let results = Arc::new(RwLock::new(Vec::new()));
+
+    // launch processing threads
+    for lines_chunk in lines_chunks {
+        let results = results.clone();
+
+        let t = thread::spawn(move || {
+            let result = calculate_piece(lines_chunk);
+            let _ = results.write().unwrap().extend(result);
+        });
+
+        running_threads.push(t);
     }
+
+    // wait threads
+    for t in running_threads {
+        t.join();
+    }
+
+    let mut ordered_list: Vec<(&str, f64, f64, f64)> = Vec::new();
 
     //  emits the results on stdout like this (i.e. sorted alphabetically by station name, and the result values per station
-    //   in the format <min>/<mean>/<max>, rounded to one fractional digit
-    //   {Abha=-23.0/18.0/59.2, Abidjan=-16.2/26.0/67.3}
-    let mut ordered_list = Vec::new();
-
-    for (key, val) in buckets {
-        let min = calculate_min(&val);
-        let max = calculate_max(&val);
-        let avg = calculate_avg(&val);
-
-        ordered_list.push((key, min, max, avg));
-    }
+    //  in the format <min>/<mean>/<max>, rounded to one fractional digit
+    //  {Abha=-23.0/18.0/59.2, Abidjan=-16.2/26.0/67.3}
 
     ordered_list.sort_unstable_by(|a, b| a.0.cmp(b.0));
 
@@ -84,7 +88,41 @@ fn main() {
     println!("{}", output_string);
 }
 
-fn calculate_min(lst: &Vec<f64>) -> f64 {
+fn calculate_piece<'a>(lines: &'a [&'a str]) -> Vec<(&'a str, f64, f64, f64)> {
+
+    let mut buckets: HashMap<&str, Vec<f64>> = HashMap::new();
+
+    for line in lines {
+        match line.split_once(';') {
+            Some((weather_station, temp_str)) => {
+    
+                let temp = temp_str.parse().expect("Cannot parse temperature");
+    
+                if buckets.contains_key(weather_station) {
+                    buckets.get_mut(weather_station).unwrap().push(temp);
+                } else {
+                    let temp_vec = vec![temp];
+                    buckets.insert(weather_station, temp_vec);
+                }
+            },
+            None => continue
+        }
+    }
+
+    let mut return_list = Vec::new();
+
+    for (key, val) in buckets {
+        let min = calculate_min(&val);
+        let max = calculate_max(&val);
+        let avg = calculate_avg(&val);
+
+        return_list.push((key, min, max, avg));
+    }
+
+    return_list
+}
+
+fn calculate_min(lst: &[f64]) -> f64 {
     let mut min = lst.first().unwrap();
 
     for i in lst {
@@ -96,7 +134,7 @@ fn calculate_min(lst: &Vec<f64>) -> f64 {
     *min
 }
 
-fn calculate_max(lst: &Vec<f64>) -> f64 {
+fn calculate_max(lst: &[f64]) -> f64 {
     let mut max = lst.first().unwrap();
 
     for i in lst {
@@ -108,7 +146,7 @@ fn calculate_max(lst: &Vec<f64>) -> f64 {
     *max
 }
 
-fn calculate_avg(lst: &Vec<f64>) -> f64 {
+fn calculate_avg(lst: &[f64]) -> f64 {
     let mut acc: f64 = 0.0;
 
     for i in lst {
