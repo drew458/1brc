@@ -11,17 +11,16 @@ struct Measurement {
     station: String,
     min: f64,
     max: f64,
-    avg: f64
+    avg: f64,
 }
 
 impl Measurement {
-
     fn new(station: String, min: f64, max: f64, mean: f64) -> Measurement {
         Measurement {
             station,
             min,
             max,
-            avg: mean
+            avg: mean,
         }
     }
 }
@@ -32,34 +31,28 @@ fn main() {
     let mut buf = String::new();
     let _ = file.read_to_string(&mut buf);
 
-    let lines: Vec<String> = buf.lines().map(|line| line.to_string()).collect();
+    let lines: Vec<&str> = buf.lines().collect();
 
-    let num_cpu = thread::available_parallelism().unwrap().get();   // we need to take ownership of every string in the file
+    let num_cpu = thread::available_parallelism().unwrap().get(); // we need to take ownership of every string in the file
 
-    let lines_chunks: Vec<_> = lines
-        .chunks(lines.len() / num_cpu)
-        .map(|chunk| chunk.to_vec())
-        .collect();
-    let mut running_threads = Vec::new();
+    let lines_chunks = lines.chunks(lines.len() / num_cpu);
 
     let results = Arc::new(RwLock::new(Vec::new()));
 
-    for lines_chunk in lines_chunks {
-        let results = results.clone();
+    thread::scope(|scope| {
+        for lines_chunk in lines_chunks {
+            
+            scope.spawn(|| {
+                let res = calculate_piece(lines_chunk);
+                results.write().unwrap().extend(res);
+            });
+        }
+    });
 
-        let t = thread::spawn(move || {
-            let result = calculate_piece(&lines_chunk);
-            let _ = results.write().unwrap().extend(result);
-        });
-
-        running_threads.push(t);
-    }
-
-    for t in running_threads {
-        t.join().unwrap();
-    }
-
-    results.write().unwrap().sort_unstable_by(|a, b| a.station.cmp(&b.station));
+    results
+        .write()
+        .unwrap()
+        .sort_unstable_by(|a, b| a.station.cmp(&b.station));
 
     let mut output_string: String = '{'.into();
     let size = results.read().unwrap().len() - 1;
@@ -71,18 +64,21 @@ fn main() {
         let avg = &elem.avg;
 
         if idx != size {
-            output_string.push_str(format!("{station_name}={min:.1}/{avg:.1}/{max:.1}, ").as_str());
+            output_string
+                .push_str(format!("{station_name}={min:.1}/{avg:.1}/{max:.1}, ").as_str());
         } else {
-            output_string.push_str(format!("{station_name}= {min:.1}/{avg:.1}/{max:.1}").as_str());
+            output_string
+                .push_str(format!("{station_name}= {min:.1}/{avg:.1}/{max:.1}").as_str());
         }
     }
 
     output_string.push('}');
 
     println!("{}", output_string);
+    
 }
 
-fn calculate_piece(lines: &[String]) -> Vec<Measurement> {
+fn calculate_piece(lines: &[&str]) -> Vec<Measurement> {
     let mut buckets: HashMap<String, Vec<f64>> = HashMap::new();
 
     for line in lines {
