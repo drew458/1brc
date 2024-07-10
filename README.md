@@ -9,9 +9,9 @@ Reference: https://github.com/gunnarmorling/1brc
 Multithreaded chucks processing without data copies, single thread file read
 
 File size: 1 million rows  
-Code version -> `0.1.2`  
+Code version -> `0.1.3`  
 **Baseline** -> `0.74s user 0.05s system 156% cpu 0.503`  
-**Rust implementation** -> `0.29s user 0.04s system 53% cpu 0.606 total`  
+**Rust implementation** -> `0.65s user 0.82s system 202% cpu 0.727 total`  
 
 #### 09/07/2024
 

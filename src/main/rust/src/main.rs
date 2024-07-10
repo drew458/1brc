@@ -33,31 +33,38 @@ fn main() {
 
     let lines: Vec<&str> = buf.lines().collect();
 
-    let num_cpu = thread::available_parallelism().unwrap().get(); // we need to take ownership of every string in the file
+    let num_cpu = thread::available_parallelism().unwrap().get();
 
     let lines_chunks = lines.chunks(lines.len() / num_cpu);
 
-    let results = Arc::new(RwLock::new(Vec::new()));
+    let buckets = Arc::new(RwLock::new(HashMap::new()));
 
     thread::scope(|scope| {
-        for lines_chunk in lines_chunks {
+        for chunk in lines_chunks {
             
             scope.spawn(|| {
-                let res = calculate_piece(lines_chunk);
-                results.write().unwrap().extend(res);
+                let shared_bucket = buckets.clone();
+                calculate_piece(chunk, shared_bucket);
             });
         }
     });
 
-    results
-        .write()
-        .unwrap()
-        .sort_unstable_by(|a, b| a.station.cmp(&b.station));
+    let mut results = Vec::new();
+
+    for (key, val) in buckets.read().unwrap().iter() {
+        let min = calculate_min(&val);
+        let max = calculate_max(&val);
+        let avg = calculate_avg(&val);
+
+        results.push(Measurement::new(key.to_string(), min, max, avg));
+    }
+
+    results.sort_unstable_by(|a, b| a.station.cmp(&b.station));
 
     let mut output_string: String = '{'.into();
-    let size = results.read().unwrap().len() - 1;
+    let size = results.len() - 1;
 
-    for (idx, elem) in results.read().unwrap().iter().enumerate() {
+    for (idx, elem) in results.iter().enumerate() {
         let station_name = &elem.station;
         let min = &elem.min;
         let max = &elem.max;
@@ -78,34 +85,30 @@ fn main() {
     
 }
 
-fn calculate_piece(lines: &[&str]) -> Vec<Measurement> {
-    let mut buckets: HashMap<String, Vec<f64>> = HashMap::new();
-
+fn calculate_piece(lines: &[&str], buckets: Arc<RwLock<HashMap<String, Vec<f64>>>>) {
     for line in lines {
         match line.split_once(';') {
             Some((weather_station, temp_str)) => {
                 let temp = temp_str.parse().expect("Cannot parse temperature");
 
-                buckets
-                    .entry(weather_station.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(temp);
+                {
+                    let mut write_guard = buckets.write().unwrap();
+
+                    match write_guard.get_mut(weather_station) {
+                        Some(tmp_vec) => {
+                            tmp_vec.push(temp);
+                        }
+                        None => {
+                            let mut tmp_vec = Vec::new();
+                            tmp_vec.push(temp);
+                            write_guard.insert(weather_station.to_string(), tmp_vec);
+                        }
+                    }
+                }
             }
             None => continue,
         }
     }
-
-    let mut return_list = Vec::new();
-
-    for (key, val) in buckets {
-        let min = calculate_min(&val);
-        let max = calculate_max(&val);
-        let avg = calculate_avg(&val);
-
-        return_list.push(Measurement::new(key, min, max, avg));
-    }
-
-    return_list
 }
 
 fn calculate_min(lst: &[f64]) -> f64 {
