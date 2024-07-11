@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::fs::File;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use std::sync::{Arc, RwLock};
-use std::thread;
+use std::sync::{Arc, Mutex};
+use std::thread::{self, scope};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const FILE_PATH: &str = "../../../data/measurements.txt";
 
@@ -33,6 +34,9 @@ impl Display for Measurement {
 }
 
 fn main() {
+    let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(); 
+    let num_cpu = thread::available_parallelism().unwrap().get();
+    
     let mut file = File::open(Path::new(FILE_PATH)).expect("Unable to open file measurements.txt");
 
     let mut buf = String::new();
@@ -40,25 +44,22 @@ fn main() {
 
     let lines: Vec<&str> = buf.lines().collect();
 
-    let num_cpu = thread::available_parallelism().unwrap().get();
-
     let lines_chunks = lines.chunks(lines.len() / num_cpu);
 
-    let buckets = Arc::new(RwLock::new(HashMap::new()));
+    let buckets = Mutex::new(HashMap::new());
 
     thread::scope(|scope| {
         for chunk in lines_chunks {
             
             scope.spawn(|| {
-                let shared_bucket = buckets.clone();
-                calculate_piece(chunk, shared_bucket);
+                calculate_piece(chunk, &buckets);
             });
         }
     });
 
     let mut results = Vec::new();
 
-    for (key, val) in buckets.read().unwrap().iter() {
+    for (key, val) in buckets.lock().unwrap().iter() {
         let min = calculate_min(&val);
         let max = calculate_max(&val);
         let avg = calculate_avg(&val);
@@ -84,17 +85,20 @@ fn main() {
     output_string.push('}');
 
     println!("{}", output_string);
+
+    let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    println!("Took {} ms", end - start);
     
 }
 
-fn calculate_piece(lines: &[&str], buckets: Arc<RwLock<HashMap<String, Vec<f64>>>>) {
+fn calculate_piece(lines: &[&str], buckets: &Mutex<HashMap<String, Vec<f64>>>) {
     for line in lines {
         match line.split_once(';') {
             Some((weather_station, temp_str)) => {
                 let temp = temp_str.parse().expect("Cannot parse temperature");
 
                 {
-                    let mut write_guard = buckets.write().unwrap();
+                    let mut write_guard = buckets.lock().unwrap();
 
                     match write_guard.get_mut(weather_station) {
                         Some(tmp_vec) => {
