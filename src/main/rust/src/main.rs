@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -22,6 +23,12 @@ impl Measurement {
             max,
             avg: mean,
         }
+    }
+}
+
+impl Display for Measurement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}={:.1}/{:.1}/{:.1}", self.station, self.min, self.avg, self.max)
     }
 }
 
@@ -65,17 +72,12 @@ fn main() {
     let size = results.len() - 1;
 
     for (idx, elem) in results.iter().enumerate() {
-        let station_name = &elem.station;
-        let min = &elem.min;
-        let max = &elem.max;
-        let avg = &elem.avg;
-
         if idx != size {
             output_string
-                .push_str(format!("{station_name}={min:.1}/{avg:.1}/{max:.1}, ").as_str());
+                .push_str(format!("{elem}, ").as_str());
         } else {
             output_string
-                .push_str(format!("{station_name}= {min:.1}/{avg:.1}/{max:.1}").as_str());
+                .push_str(format!("{elem}").as_str());
         }
     }
 
