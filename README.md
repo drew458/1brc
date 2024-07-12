@@ -1,6 +1,10 @@
 # 1brc
 
+My optimization journey in Rust.  
 Reference: https://github.com/gunnarmorling/1brc
+
+**Rules:**
+ - No external dependencies
 
 ## Progress
 
