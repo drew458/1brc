@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs::File;
-use std::io::Read;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::thread::{self};
 
@@ -91,15 +91,13 @@ fn main() {
         handles.push(handle);
     }
 
-    // Read the file
-    let mut file = File::open(Path::new(FILE_PATH)).expect("Unable to open file measurements.txt");
-    let mut buf = String::new();
-    let _ = file.read_to_string(&mut buf);
-    let mut lines = buf.lines();
-
-    // Produce the chucks
+    // Read the file and produce the chucks
+    let file = File::open(Path::new(FILE_PATH)).expect("Unable to open file measurements.txt");
+    let r = BufReader::new(file);
     let mut chunk: Vec<String> = vec![];
-    while let Some(line) = lines.next() {
+    for line_res in r.lines() {
+        let line = line_res.expect("Unable to read line of file measurements.txt!");
+
         if chunk.len() > 100000 {
             let _ = tx.send(chunk);
             chunk = vec![];
