@@ -15,8 +15,5 @@
 #  limitations under the License.
 #
 
-JAVA_OPTS=""
-# java $JAVA_OPTS --class-path target-java/average-1.0.0-SNAPSHOT.jar src/CalculateAverage_baseline.java;
 
-javac -d target-java/classes src/CalculateAverage_baseline.java
-java -cp target-java/classes dev.morling.onebrc.CalculateAverage_baseline
+java --class-path target/average-1.0.0-SNAPSHOT.jar dev.morling.onebrc.CreateMeasurements $1

@@ -7,4 +7,11 @@ edition = "2021"
 codegen-units = 1
 lto = "fat"
 
+[profile.profiling]
+inherits = "release"
+debug = true
+
+[build]
+target-dir = "../target-rust"
+
 [dependencies]

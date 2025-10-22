@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::fs::{self, File};
-use std::io::{Read, Seek, SeekFrom};
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
-use std::thread::{self, scope};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
+use std::thread::{self};
 
-const FILE_PATH: &str = "../../../data/measurements.txt";
+const FILE_PATH: &str = "measurements.txt";
 
 struct Measurement {
     station: String,
@@ -34,7 +33,6 @@ impl Display for Measurement {
 }
 
 fn main() {
-    let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(); 
     let num_cpu = thread::available_parallelism().unwrap().get();
     
     let mut file = File::open(Path::new(FILE_PATH)).expect("Unable to open file measurements.txt");
@@ -60,9 +58,9 @@ fn main() {
     let mut results = Vec::new();
 
     for (key, val) in buckets.lock().unwrap().iter() {
-        let min = calculate_min(&val);
-        let max = calculate_max(&val);
-        let avg = calculate_avg(&val);
+        let min = calculate_min(val);
+        let max = calculate_max(val);
+        let avg = calculate_avg(val);
 
         results.push(Measurement::new(key.to_string(), min, max, avg));
     }
@@ -85,10 +83,6 @@ fn main() {
     output_string.push('}');
 
     println!("{}", output_string);
-
-    let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-    println!("Took {} ms", end - start);
-    
 }
 
 fn calculate_piece(lines: &[&str], buckets: &Mutex<HashMap<String, Vec<f64>>>) {
@@ -105,8 +99,7 @@ fn calculate_piece(lines: &[&str], buckets: &Mutex<HashMap<String, Vec<f64>>>) {
                             tmp_vec.push(temp);
                         }
                         None => {
-                            let mut tmp_vec = Vec::new();
-                            tmp_vec.push(temp);
+                            let tmp_vec = vec![temp];
                             write_guard.insert(weather_station.to_string(), tmp_vec);
                         }
                     }
