@@ -11,7 +11,5 @@ lto = "fat"
 inherits = "release"
 debug = true
 
-[build]
-target-dir = "../target-rust"
-
 [dependencies]
+crossbeam = "0.8.4"

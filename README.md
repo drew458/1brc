@@ -32,7 +32,18 @@ The task is to write a Java program which reads the file, calculates the min, me
 
 ## Progress
 
-### 21/10/2025
+### 6th take
+
+Go: Multithreaded chucks processing, single thread file read that passes chucks of lines through channels
+Rust: Multithreaded chucks processing without global locking, single thread file read that passes chucks of lines through channels
+
+File size: 1 billion rows
+
+**Baseline** -> `77.25s user 3.99s system 101% cpu 1:20.07 total`  
+**Rust** ->`234.24s user 58.09s system 234% cpu 2:04.72 total`  
+**Go** -> `111.80s user 4.62s system 409% cpu 28.461 total`
+
+### 5th take
 
 Go: Multithreaded chucks processing, single thread file read that passes chucks of lines through channels
 Rust: Multithreaded chucks processing without data copies, single thread file read
@@ -44,7 +55,7 @@ File size: 1 billion rows
 **Go** -> `111.80s user 4.62s system 409% cpu 28.461 total`
 
 
-### 15/10/2025
+### 4th take
 
 Go: basic implementation  
 Rust: Multithreaded chucks processing without data copies, single thread file read
@@ -55,7 +66,7 @@ File size: 1 billion rows
 **Rust** ->`132.20s user 1440.23s system 749% cpu 3:29.66 total`  
 **Go** -> `78.95s user 5.09s system 98% cpu 1:24.99 total`
 
-#### 10/07/2024
+#### 3rd take
 
 Multithreaded chucks processing without data copies, single thread file read
 
@@ -64,7 +75,7 @@ Code version -> `0.1.3`
 **Baseline** -> `0.74s user 0.05s system 156% cpu 0.503`  
 **Rust** -> `0.65s user 0.82s system 202% cpu 0.727 total`  
 
-#### 09/07/2024
+#### 2nd take
 
 Multithreaded chucks processing with data copies, single thread file read
 
@@ -73,7 +84,7 @@ Code version -> `0.1.1`
 **Baseline** -> `0.74s user 0.05s system 156% cpu 0.503`   
 **Rust** -> `2.28s user 1.41s system 306% cpu 1.204 total`
 
-#### 08/07/2024
+#### 1st take
 
 Base implementation, single thread everything
 
