@@ -16,7 +16,7 @@ const BUF_SIZE = 100000
 
 type MeasurementAggregate struct {
 	min   float32
-	avg   float32
+	sum   float32
 	count float32
 	max   float32
 }
@@ -70,40 +70,36 @@ func main() {
 					if err != nil {
 						log.Fatalf("Failed to read measurement from file: %s", err)
 					}
-					measurement := float32(val)
+					temperatureMeasurement := float32(val)
 
 					// Update the min, mean, max
 					var min float32
-					var newAvg float32
+					var sum float32
 					var count float32
 					var max float32
 					stats, found := m[city]
 					if found {
 						min = stats.min
 
-						if measurement < min {
-							min = measurement
+						if temperatureMeasurement < min {
+							min = temperatureMeasurement
 						}
 
-						old_avg := stats.avg
-						count = stats.count
-
-						newAvg = ((old_avg * count) + measurement) / (count + 1) // Incremental average formula
-
-						count++
+						count = stats.count + 1
+						sum = sum + temperatureMeasurement
 
 						max = stats.max
-						if measurement > max {
-							max = measurement
+						if temperatureMeasurement > max {
+							max = temperatureMeasurement
 						}
 					} else {
-						min = measurement
-						newAvg = measurement
+						min = temperatureMeasurement
+						sum = temperatureMeasurement
 						count = 1.0
-						max = measurement
+						max = temperatureMeasurement
 					}
 
-					m[city] = MeasurementAggregate{min, newAvg, count, max}
+					m[city] = MeasurementAggregate{min, sum, count, max}
 				}
 			}
 
@@ -120,42 +116,34 @@ func main() {
 	// Takes the intermediate maps from mapsChan and assemble it into m, the global one
 	for intermediateMap := range mapsChan {
 
-		for city, measurement := range intermediateMap {
+		for city, temperatureMeasurement := range intermediateMap {
 			// Update the global min, mean, max
 			var globalMin float32
-			var newAvg float32
+			var globalSum float32
 			var globalCount float32
 			var globalMax float32
-			stats, found := m[city]
+			globalStats, found := m[city]
 			if found {
-				localMin := measurement.min
-				globalMin = stats.min
-
-				if localMin < globalMin {
-					globalMin = localMin
+				globalMin = globalStats.min
+				if temperatureMeasurement.min < globalMin {
+					globalMin = temperatureMeasurement.min
 				}
 
-				localAvg := measurement.avg
-				oldGlobalAvg := stats.min
-				globalCount = stats.count
+				globalSum = globalStats.sum + temperatureMeasurement.sum
+				globalCount = globalStats.count + 1
 
-				newAvg = ((oldGlobalAvg * globalCount) + localAvg) / (globalCount + 1) // Incremental average formula
-
-				globalCount++
-
-				localMax := measurement.max
-				globalMax = stats.max
-				if localMax > globalMax {
-					globalMax = localMax
+				globalMax = globalStats.max
+				if temperatureMeasurement.max > globalMax {
+					globalMax = temperatureMeasurement.max
 				}
 			} else {
-				globalMin = measurement.min
-				newAvg = measurement.avg
+				globalMin = temperatureMeasurement.min
+				globalSum = temperatureMeasurement.sum
 				globalCount = 1.0
-				globalMax = measurement.max
+				globalMax = temperatureMeasurement.max
 			}
 
-			m[city] = MeasurementAggregate{globalMin, newAvg, globalCount, globalMax}
+			m[city] = MeasurementAggregate{globalMin, globalSum, globalCount, globalMax}
 		}
 	}
 
@@ -164,7 +152,7 @@ func main() {
 
 	for city, measurements := range m {
 		min := measurements.min
-		avg := measurements.avg
+		avg := measurements.sum / measurements.count
 		max := measurements.max
 
 		finalMap[city] = fmt.Sprintf("%.1f/%.1f/%.1f", min, avg, max)
